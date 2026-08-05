@@ -1,0 +1,49 @@
+name: CD
+
+# Só roda depois que o workflow "CI" terminar VERDE na main.
+# Ou seja: nada é publicado sem os testes passando.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  # permite publicar manualmente pela aba Actions, se precisar
+  workflow_dispatch:
+
+jobs:
+  publicar-imagem:
+    # no gatilho workflow_run, checa se o CI passou; no manual, segue direto
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write # necessário para escrever no ghcr.io
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Publica no GitHub Container Registry (ghcr.io) usando o token que o
+      # próprio Actions fornece — não precisa cadastrar segredo nenhum.
+      - name: Autenticar no ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir e publicar a imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # duas tags: "latest" e o SHA do commit (para saber o que está no ar)
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Onde a imagem foi publicada
+        run: |
+          echo "imagem: ghcr.io/${{ github.repository }}:latest"
+          echo "rodar localmente:"
+          echo "  docker run -p 3000:3000 ghcr.io/${{ github.repository }}:latest"

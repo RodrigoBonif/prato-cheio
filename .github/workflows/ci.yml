@@ -52,5 +52,13 @@ jobs:
       - name: Verificar se a aplicação sobe
         run: |
           npm start &
-          sleep 3
-          curl --fail http://localhost:3000/api/saude
+          # espera a porta responder (até ~30s) em vez de chutar um sleep fixo
+          for tentativa in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/api/saude; then
+              echo "aplicação respondeu"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "a aplicação não respondeu em /api/saude"
+          exit 1
