@@ -1,0 +1,18 @@
+node_modules
+npm-debug.log
+*.log
+
+# banco local de desenvolvimento
+dados.sqlite
+dados.sqlite-journal
+
+# nada disso precisa ir para dentro da imagem
+.git
+.github
+.env
+docs
+tests
+vitest.config.js
+Dockerfile
+.dockerignore
+README.md
