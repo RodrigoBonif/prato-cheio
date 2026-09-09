@@ -26,7 +26,28 @@ export async function listarDoRestaurante(restauranteId) {
   return repo.listarPorRestaurante(restauranteId);
 }
 
-// TODO (commit 3): listarDisponiveis e reservar.
+/** Uma ONG vê as doações disponíveis. */
 export async function listarDisponiveis() {
-  throw erroHttp('não implementado: listarDisponiveis', 501);
+  return repo.listarDisponiveis();
+}
+
+/** Doações já reservadas pela ONG logada. */
+export async function listarReservas(ongId) {
+  return repo.listarPorOng(ongId);
+}
+
+/**
+ * Uma ONG reserva uma doação.
+ * Regra do caso: uma doação reservada não fica disponível para outra ONG.
+ */
+export async function reservar(id, ong) {
+  if (!ong || ong.papel !== 'ong') {
+    throw erroHttp('apenas ONGs podem reservar doações', 403);
+  }
+  const doacao = await repo.buscarPorId(id);
+  if (!doacao) throw erroHttp('doação não encontrada', 404);
+
+  const reservada = await repo.reservar(id, ong.id);
+  if (!reservada) throw erroHttp('esta doação já foi reservada por outra ONG', 409);
+  return reservada;
 }

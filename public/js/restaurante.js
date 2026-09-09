@@ -1,5 +1,6 @@
 // Painel do Restaurante: publicar doação e acompanhar as próprias doações.
 import { api } from './api.js';
+import { escapar, selo, vazio, carregando, dataBr } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,28 +40,37 @@ function limparFormulario() {
 
 async function carregarMinhas() {
   const alvo = $('minhas-doacoes');
-  const doacoes = await api('/doacoes/minhas');
-  if (!doacoes.length) {
-    alvo.innerHTML = '<div class="cartao">Você ainda não publicou nenhuma doação.</div>';
-    return;
+  alvo.innerHTML = carregando();
+  try {
+    const doacoes = await api('/doacoes/minhas');
+    if (!doacoes.length) {
+      alvo.innerHTML = vazio('Você ainda não publicou nenhuma doação.');
+      return;
+    }
+    alvo.innerHTML = doacoes.map((d) => `
+      <div class="cartao">
+        <div class="titulo">${escapar(d.tipo)}${selo(d.status)}</div>
+        <div class="linha">${escapar(d.quantidade)} · até ${dataBr(d.validade)}</div>
+        ${d.retirada ? `<div class="linha">Retirada: ${escapar(d.retirada)}</div>` : ''}
+        ${d.descricao ? `<div class="linha">${escapar(d.descricao)}</div>` : ''}
+        ${d.status === 'reservada'
+          ? `<div class="linha">Reservada por ${escapar(d.ong_nome || 'uma ONG')}${
+              d.ong_telefone ? ` · ${escapar(d.ong_telefone)}` : ''}</div>`
+          : ''}
+      </div>
+    `).join('');
+  } catch (erro) {
+    alvo.innerHTML = vazio(erro.message);
   }
-  alvo.innerHTML = doacoes.map((d) => `
-    <div class="cartao">
-      <strong>${d.tipo}</strong> — ${d.quantidade}
-      <div>Até ${d.validade}${d.retirada ? ` · ${d.retirada}` : ''}</div>
-      ${d.descricao ? `<div>${d.descricao}</div>` : ''}
-      <div>${d.status === 'reservada'
-        ? `Reservada por ${d.ong_nome || 'uma ONG'}${d.ong_telefone ? ` · ${d.ong_telefone}` : ''}`
-        : 'Disponível'}</div>
-    </div>
-  `).join('');
 }
 
 export async function montarPainelRestaurante() {
   const tela = $('tela-restaurante');
   tela.innerHTML = MODELO;
 
-  $('doa-publicar').onclick = async () => {
+  $('doa-publicar').onclick = async (evento) => {
+    const botao = evento.currentTarget;
+    botao.disabled = true;
     try {
       aviso('');
       await api('/doacoes', {
@@ -76,7 +86,11 @@ export async function montarPainelRestaurante() {
       limparFormulario();
       aviso('Doação publicada. As ONGs já podem vê-la.', 'ok');
       await carregarMinhas();
-    } catch (erro) { aviso(erro.message); }
+    } catch (erro) {
+      aviso(erro.message);
+    } finally {
+      botao.disabled = false;
+    }
   };
 
   await carregarMinhas();

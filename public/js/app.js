@@ -1,6 +1,7 @@
 // Ponto de entrada da interface: decide qual tela mostrar conforme o papel.
 import { ligarTelaAuth, sessaoAtual, sair } from './auth.js';
 import { montarPainelRestaurante } from './restaurante.js';
+import { montarPainelOng } from './ong.js';
 
 const $ = (id) => document.getElementById(id);
 let usuarioAtual;
@@ -14,10 +15,12 @@ function mostrarTela(nome) {
 
 async function entrar(usuario) {
   usuarioAtual = usuario;
+  document.title = `Prato Cheio · ${usuario.nome}`;
   $('nome-usuario').textContent = usuario.nome;
   $('papel-usuario').textContent = usuario.papel === 'restaurante' ? 'Restaurante' : 'ONG';
   mostrarTela(usuario.papel);
   if (usuario.papel === 'restaurante') await montarPainelRestaurante();
+  else await montarPainelOng();
 }
 
 async function iniciar() {
@@ -25,6 +28,9 @@ async function iniciar() {
   $('botao-sair').onclick = async () => {
     await sair();
     usuarioAtual = undefined;
+    document.title = 'Prato Cheio';
+    document.getElementById('tela-restaurante').innerHTML = '';
+    document.getElementById('tela-ong').innerHTML = '';
     mostrarTela('auth');
   };
 

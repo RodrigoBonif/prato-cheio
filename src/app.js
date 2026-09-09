@@ -40,7 +40,8 @@ export function criarApp() {
   app.get('/api/eu', exigirLogin(), (req, res) => res.json(req.usuario));
 
   // ----- Doações -------------------------------------------------------------
-  app.get('/api/doacoes', async (req, res) => {
+  // Feed de doações disponíveis (visível para quem está logado).
+  app.get('/api/doacoes', exigirLogin(), async (req, res) => {
     try {
       res.json(await doacoes.listarDisponiveis());
     } catch (erro) {
@@ -61,6 +62,27 @@ export function criarApp() {
   app.get('/api/doacoes/minhas', exigirPapel('restaurante'), async (req, res) => {
     try {
       res.json(await doacoes.listarDoRestaurante(req.usuario.id));
+    } catch (erro) {
+      responderErro(res, erro);
+    }
+  });
+
+  // Só o perfil ONG reserva.
+  const reservarDoacao = async (req, res) => {
+    try {
+      res.json(await doacoes.reservar(req.params.id, req.usuario));
+    } catch (erro) {
+      responderErro(res, erro);
+    }
+  };
+
+  app.post('/api/doacoes/:id/reservar', exigirPapel('ong'), reservarDoacao);
+  app.post('/api/doacoes/:id/aceitar', exigirPapel('ong'), reservarDoacao); // rota antiga
+
+  // Painel da ONG: o que ela já reservou.
+  app.get('/api/reservas', exigirPapel('ong'), async (req, res) => {
+    try {
+      res.json(await doacoes.listarReservas(req.usuario.id));
     } catch (erro) {
       responderErro(res, erro);
     }

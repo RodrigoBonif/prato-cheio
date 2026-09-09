@@ -50,49 +50,51 @@ O `src/db.js` foi desenhado para isso: ele expõe `query()` devolvendo `{ rows }
 ## Estrutura
 
 ```
-src/server.js        entrypoint (npm start)
-src/db.js            conexão e schema do banco (pronto)
-src/app.js           rotas da API
-src/doacoes.js       regras de negócio      <- implementar (U1)
-src/repositorio.js   acesso ao banco (SQL)  <- implementar (U1)
-public/index.html    interface (funciona no celular)
-tests/               testes automatizados
-docs/analise.md      documento de análise   (Trabalho 1)
-docs/projeto.md      documento de projeto   (Trabalho 2)
-docs/adr/            decisões arquiteturais (Trabalho 2)
-docs/validacao.md    validação e testes     (Trabalho 3)
-docs/refatoracoes.md refatorações feitas    (Trabalho 3)
-docs/demo.md         roteiro da demo        (Trabalho 3)
-docs/retrospectivas/ retrospectiva de cada iteração
-.github/workflows/   pipeline de CI
+src/server.js          entrypoint (npm start)
+src/db.js              conexão e schema do banco
+src/auth.js            hash de senha, sessão por token e proteção por papel
+src/usuarios.js        regras de cadastro e login
+src/app.js             rotas da API
+src/doacoes.js         regras de negócio das doações
+src/repositorio.js     acesso ao banco (SQL)
+public/index.html      interface (funciona no celular)
+public/estilo.css      estilos
+public/js/api.js       cliente HTTP + token da sessão
+public/js/auth.js      telas de cadastro e login
+public/js/restaurante.js  painel do Restaurante
+public/js/ong.js       painel da ONG
+public/js/ui.js        peças de interface compartilhadas
+tests/                 testes automatizados
+docs/analise.md        documento de análise   (Trabalho 1)
 ```
 
-## Como trabalhar (fluxo de Pull Request)
+## O MVP
 
-A partir da Unidade 2, **nada entra direto na `main`**:
+Um fluxo, de ponta a ponta:
 
-```bash
-git checkout -b historia/ong-aceita-doacao
-# ... implementa, escreve o teste, roda npm test ...
-git commit -m "ONG aceita uma doação e ela sai da lista"
-git push -u origin historia/ong-aceita-doacao
-```
+1. **Cadastro e login** com dois perfis: `restaurante` e `ong`.
+2. O **Restaurante** publica uma doação (tipo, quantidade, validade, janela de retirada, descrição).
+3. A **ONG** vê as doações disponíveis e **reserva** uma delas — que sai imediatamente do feed das outras ONGs.
 
-Abra o Pull Request no GitHub, preencha o template, espere o **CI ficar verde** e
-peça a revisão de **outro integrante**. Só então faça o merge.
+### Rotas
 
-## O que já está pronto e o que falta
+| Método | Rota | Quem pode |
+|---|---|---|
+| GET | `/api/saude` | qualquer um |
+| POST | `/api/cadastro` | qualquer um |
+| POST | `/api/login` | qualquer um |
+| POST | `/api/logout` | logado |
+| GET | `/api/eu` | logado |
+| GET | `/api/doacoes` | logado (feed de disponíveis) |
+| POST | `/api/doacoes` | restaurante |
+| GET | `/api/doacoes/minhas` | restaurante |
+| POST | `/api/doacoes/:id/reservar` | ong |
+| GET | `/api/reservas` | ong |
 
-Pronto: estrutura do projeto, interface básica, rota de saúde, **conexão com o banco e o schema** (`src/db.js`), CI configurado e um teste passando (prova que a aplicação sobe).
+Autenticação por token: o cadastro e o login devolvem `token`, enviado depois no cabeçalho
+`Authorization: Bearer <token>`. A senha é gravada como hash `scrypt` (`node:crypto`) — nunca em texto puro.
 
-Falta (Trabalho 1 — walking skeleton): implementar `src/doacoes.js` (regras) e
-`src/repositorio.js` (SQL) para que a história zero funcione ponta a ponta —
-**um doador publica uma doação → uma ONG vê a doação → a ONG a aceita e ela sai da lista.**
-Os critérios de aceite estão em `tests/doacoes.test.js` como `it.todo`: troque cada um
-por um teste de verdade conforme implementa.
+### Como a corrida entre duas ONGs é evitada
 
-## Uso de IA
-
-A IA pode participar da produção, mas o grupo é responsável por verificar, testar,
-corrigir e **defender** o resultado. Registre em cada Pull Request o que foi gerado
-com IA e o que vocês alteraram.
+A reserva é um único `UPDATE ... WHERE id = ? AND status = 'disponivel'`. Se duas ONGs
+clicarem ao mesmo tempo, a segunda não altera nenhuma linha e recebe `409`.
