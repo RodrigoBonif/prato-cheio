@@ -82,7 +82,66 @@ describe('painel do restaurante', () => {
 });
 
 describe('reservar uma doação', () => {
-  it.todo('a ONG vê a doação na lista de disponíveis');
-  it.todo('a ONG reserva a doação e ela sai da lista');
-  it.todo('recusa reservar uma doação já reservada por outra ONG');
+  async function publicarDoacao() {
+    const token = await contaRestaurante();
+    const res = await request(app).post('/api/doacoes')
+      .set('Authorization', `Bearer ${token}`).send(doacaoValida);
+    return res.body.id;
+  }
+
+  it('a ONG vê a doação na lista de disponíveis', async () => {
+    await publicarDoacao();
+    const ong = await contaOng();
+    const res = await request(app).get('/api/doacoes').set('Authorization', `Bearer ${ong}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].restaurante_nome).toBe('Cantina da Praça');
+  });
+
+  it('a ONG reserva a doação e ela sai da lista de disponíveis', async () => {
+    const id = await publicarDoacao();
+    const ong = await contaOng();
+
+    const reserva = await request(app).post(`/api/doacoes/${id}/reservar`)
+      .set('Authorization', `Bearer ${ong}`);
+    expect(reserva.status).toBe(200);
+    expect(reserva.body.status).toBe('reservada');
+
+    const feed = await request(app).get('/api/doacoes').set('Authorization', `Bearer ${ong}`);
+    expect(feed.body).toHaveLength(0);
+
+    const minhas = await request(app).get('/api/reservas').set('Authorization', `Bearer ${ong}`);
+    expect(minhas.body).toHaveLength(1);
+  });
+
+  it('recusa reservar uma doação já reservada por outra ONG', async () => {
+    const id = await publicarDoacao();
+    const primeira = await contaOng();
+    const segunda = await criarConta({
+      nome: 'Casa do Pão', email: 'ong2@teste.com', senha: 'segredo123', papel: 'ong'
+    });
+
+    await request(app).post(`/api/doacoes/${id}/reservar`)
+      .set('Authorization', `Bearer ${primeira}`);
+    const res = await request(app).post(`/api/doacoes/${id}/reservar`)
+      .set('Authorization', `Bearer ${segunda}`);
+    expect(res.status).toBe(409);
+  });
+
+  it('bloqueia restaurante tentando reservar', async () => {
+    const id = await publicarDoacao();
+    const restaurante = await criarConta({
+      nome: 'Bistrô', email: 'bistro@teste.com', senha: 'segredo123', papel: 'restaurante'
+    });
+    const res = await request(app).post(`/api/doacoes/${id}/reservar`)
+      .set('Authorization', `Bearer ${restaurante}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('devolve 404 para doação inexistente', async () => {
+    const ong = await contaOng();
+    const res = await request(app).post('/api/doacoes/999/reservar')
+      .set('Authorization', `Bearer ${ong}`);
+    expect(res.status).toBe(404);
+  });
 });
