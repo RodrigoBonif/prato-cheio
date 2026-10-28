@@ -32,15 +32,21 @@ export async function listarPorRestaurante(restauranteId) {
   return rows;
 }
 
-/** Doações ainda disponíveis, com os dados do restaurante que publicou. */
-export async function listarDisponiveis() {
+/**
+ * Doações ainda disponíveis e dentro da validade, com os dados do restaurante.
+ * `hoje` vem da regra de negócio (AAAA-MM-DD); a comparação de texto funciona
+ * porque o formato ISO ordena igual à data.
+ */
+export async function listarDisponiveis(hoje) {
   const { rows } = await query(
     `SELECT d.*, r.nome AS restaurante_nome, r.endereco AS restaurante_endereco,
             r.telefone AS restaurante_telefone
        FROM doacoes d
        LEFT JOIN usuarios r ON r.id = d.restaurante_id
       WHERE d.status = 'disponivel'
-      ORDER BY d.validade ASC, d.id DESC`
+        AND d.validade >= ?
+      ORDER BY d.validade ASC, d.id DESC`,
+    [hoje]
   );
   return rows;
 }

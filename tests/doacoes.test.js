@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { criarApp } from '../src/app.js';
 import { migrar, limparBanco, encerrar } from '../src/db.js';
+import { emDias } from './apoio.js';
 
 const app = criarApp();
 
@@ -17,7 +18,7 @@ const contaOng = () => criarConta({
   nome: 'Mãos Amigas', email: 'ong@teste.com', senha: 'segredo123', papel: 'ong'
 });
 
-const doacaoValida = { tipo: 'Marmitas', quantidade: '20 porções', validade: '2026-12-01' };
+const doacaoValida = { tipo: 'Marmitas', quantidade: '20 porções', validade: emDias(7) };
 
 beforeEach(async () => { await migrar(); await limparBanco(); });
 afterAll(async () => { await encerrar(); });
