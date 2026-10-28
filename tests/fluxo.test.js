@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { criarApp } from '../src/app.js';
 import { migrar, limparBanco, encerrar } from '../src/db.js';
+import { emDias } from './apoio.js';
 
 const app = criarApp();
 
@@ -22,7 +23,7 @@ describe('fluxo completo do MVP', () => {
     const doacao = await request(app).post('/api/doacoes')
       .set('Authorization', `Bearer ${restaurante.body.token}`)
       .send({
-        tipo: 'Marmitas', quantidade: '20 porções', validade: '2026-12-01',
+        tipo: 'Marmitas', quantidade: '20 porções', validade: emDias(7),
         retirada: 'hoje, das 18h às 20h', descricao: 'Manter refrigerado'
       });
     expect(doacao.status).toBe(201);

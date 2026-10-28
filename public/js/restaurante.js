@@ -67,6 +67,8 @@ async function carregarMinhas() {
 export async function montarPainelRestaurante() {
   const tela = $('tela-restaurante');
   tela.innerHTML = MODELO;
+  // H1: o calendário não deixa escolher data passada (o servidor também confere).
+  $('doa-validade').min = new Date().toLocaleDateString('sv-SE');
 
   $('doa-publicar').onclick = async (evento) => {
     const botao = evento.currentTarget;
