@@ -64,8 +64,11 @@ public/js/auth.js      telas de cadastro e login
 public/js/restaurante.js  painel do Restaurante
 public/js/ong.js       painel da ONG
 public/js/ui.js        peças de interface compartilhadas
-tests/                 testes automatizados
+tests/                 testes automatizados (npm test)
 docs/analise.md        documento de análise   (Trabalho 1)
+docs/projeto.md        histórias, decisões e RNFs (Entrega 2)
+docs/adr/              registros de decisão de arquitetura
+docs/retrospectivas/   retrospectivas das iterações
 ```
 
 ## O MVP
@@ -89,10 +92,18 @@ Um fluxo, de ponta a ponta:
 | POST | `/api/doacoes` | restaurante |
 | GET | `/api/doacoes/minhas` | restaurante |
 | POST | `/api/doacoes/:id/reservar` | ong |
+| POST | `/api/doacoes/:id/cancelar` | restaurante dono (só se disponível) |
+| POST | `/api/doacoes/:id/retirada` | ong que reservou (só se reservada) |
 | GET | `/api/reservas` | ong |
 
 Autenticação por token: o cadastro e o login devolvem `token`, enviado depois no cabeçalho
 `Authorization: Bearer <token>`. A senha é gravada como hash `scrypt` (`node:crypto`) — nunca em texto puro.
+
+### Ciclo de vida da doação (Entrega 2)
+
+`disponivel → reservada → retirada`, ou `disponivel → cancelada`. Doações com validade no
+passado são recusadas na publicação e somem do feed das ONGs. Detalhes e critérios de aceite em
+[`docs/projeto.md`](docs/projeto.md); decisões em [`docs/adr/`](docs/adr/).
 
 ### Como a corrida entre duas ONGs é evitada
 
